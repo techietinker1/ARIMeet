@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.local
+.venv
+__pycache__
+*.pyc
+recordings
+public/recordings
+tsconfig.tsbuildinfo
+*.log

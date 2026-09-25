@@ -1,0 +1,16 @@
+node_modules
+# Keep environment variables out of version control
+.env
+.env.local
+.env.docker
+
+.next
+.venv
+__pycache__
+*.pyc
+tsconfig.tsbuildinfo
+recordings
+public/recordings
+t5-base-model
+
+/lib/generated/prisma

@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model breakoutparticipant {
+  id             String       @id
+  breakoutRoomId String
+  displayName    String
+  email          String?
+  joinedAt       DateTime
+  leftAt         DateTime?
+  breakoutroom   breakoutroom @relation(fields: [breakoutRoomId], references: [id], onDelete: Cascade, map: "BreakoutParticipant_breakoutRoomId_fkey")
+
+  @@index([breakoutRoomId], map: "BreakoutParticipant_breakoutRoomId_fkey")
+}
+
+model breakoutroom {
+  id                  String                @id
+  meetingId           String
+  sessionId           String?
+  breakoutKey         String
+  name                String
+  createdBy           String?
+  createdAt           DateTime
+  closedAt            DateTime?
+  breakoutparticipant breakoutparticipant[]
+  meeting             meeting               @relation(fields: [meetingId], references: [id], onDelete: Cascade, map: "BreakoutRoom_meetingId_fkey")
+  meetingsession      meetingsession?       @relation(fields: [sessionId], references: [id], onDelete: Cascade, map: "BreakoutRoom_sessionId_fkey")
+
+  @@index([meetingId], map: "BreakoutRoom_meetingId_fkey")
+  @@index([sessionId], map: "BreakoutRoom_sessionId_fkey")
+}
+
+model livecaption {
+  id        String   @id
+  meetingId String
+  userName  String?
+  userEmail String?
+  text      String
+  createdAt DateTime @default(now())
+  meeting   meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade, map: "LiveCaption_meetingId_fkey")
+
+  @@index([meetingId], map: "LiveCaption_meetingId_fkey")
+}
+
+model meeting {
+  id                 String               @id
+  roomId             String               @unique(map: "Meeting_roomId_key")
+  description        String?              @db.Text
+  hostEmail          String
+  scheduledFor       DateTime
+  createdById        String
+  createdAt          DateTime             @default(now())
+  topic              String?
+  breakoutroom       breakoutroom[]
+  livecaption        livecaption[]
+  meetingparticipant meetingparticipant[]
+  meetingsession     meetingsession[]
+  recording          recording[]
+}
+
+model meetingparticipant {
+  id             String          @id
+  meetingId      String
+  sessionId      String?
+  displayName    String
+  email          String?
+  joinedAt       DateTime
+  leftAt         DateTime?
+  meeting        meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade, map: "MeetingParticipant_meetingId_fkey")
+  meetingsession meetingsession? @relation(fields: [sessionId], references: [id], onDelete: Cascade, map: "MeetingParticipant_sessionId_fkey")
+
+  @@index([meetingId], map: "MeetingParticipant_meetingId_fkey")
+  @@index([sessionId], map: "MeetingParticipant_sessionId_fkey")
+}
+
+model meetingsession {
+  id                 String               @id
+  meetingId          String
+  startedAt          DateTime
+  endedAt            DateTime?
+  durationMs         Int?
+  breakoutroom       breakoutroom[]
+  meetingparticipant meetingparticipant[]
+  meeting            meeting              @relation(fields: [meetingId], references: [id], onDelete: Cascade, map: "MeetingSession_meetingId_fkey")
+  recording          recording[]
+
+  @@index([meetingId], map: "MeetingSession_meetingId_fkey")
+}
+
+model recording {
+  id                  String               @id
+  meetingId           String
+  sessionId           String?
+  type                recording_type
+  userName            String?
+  userEmail           String?
+  filePath            String
+  fileName            String
+  savedAt             DateTime
+  startedAt           DateTime?
+  endedAt             DateTime?
+  durationMs          Int?
+  meeting             meeting              @relation(fields: [meetingId], references: [id], onDelete: Cascade, map: "Recording_meetingId_fkey")
+  meetingsession      meetingsession?      @relation(fields: [sessionId], references: [id], onDelete: Cascade, map: "Recording_sessionId_fkey")
+  recordingtranscript recordingtranscript?
+
+  @@index([meetingId], map: "Recording_meetingId_fkey")
+  @@index([sessionId], map: "Recording_sessionId_fkey")
+}
+
+model recordingtranscript {
+  id          String    @id
+  recordingId String    @unique(map: "RecordingTranscript_recordingId_key")
+  text        String
+  createdAt   DateTime  @default(now())
+  recording   recording @relation(fields: [recordingId], references: [id], onDelete: Cascade, map: "RecordingTranscript_recordingId_fkey")
+}
+
+enum recording_type {
+  AUDIO
+  MEETING
+}

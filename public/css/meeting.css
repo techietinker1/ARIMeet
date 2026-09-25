@@ -1,0 +1,720 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #1a1a1a;
+  color: #fff;
+  overflow: hidden;
+}
+
+/* When rendered inside the Next.js app, the body also has .bg-dark-2.
+   This class ensures we still get the original dark meeting background
+   instead of the blue dashboard color. */
+body.bg-dark-2.ari-meet-meeting-page {
+  background: #1a1a1a !important;
+}
+
+.prejoin-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.98));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 220;
+}
+
+.prejoin-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
+  padding: 20px 22px;
+}
+
+.prejoin-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.prejoin-subtitle {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+.prejoin-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.prejoin-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: #020617;
+  border: 1px solid #1f2937;
+  font-size: 13px;
+}
+
+.prejoin-option input {
+  accent-color: #0ea5e9;
+}
+
+.prejoin-button {
+  width: 100%;
+  border-radius: 999px;
+  border: none;
+  padding: 10px 16px;
+  background: linear-gradient(90deg, #0ea5e9, #2563eb);
+  color: #f9fafb;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.6);
+}
+
+.prejoin-button:hover {
+  background: linear-gradient(90deg, #0ea5e9, #2563eb);
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 20px 50px rgba(37, 99, 235, 0.8);
+}
+
+.prejoin-button:disabled {
+  background: linear-gradient(90deg, #0ea5e9, #2563eb);
+  color: #f9fafb;
+  cursor: wait;
+  opacity: 0.8;
+}
+
+.meeting-container {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+}
+
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 32px 32px 120px;
+  flex: 1;
+  overflow-y: auto;
+  background: #0a0a0a;
+  max-width: 1280px;
+  margin: 0 auto;
+  justify-content: center;
+  align-content: center;
+}
+
+/* Presenter mode: one large main video with small thumbnails */
+.videos-grid.presenter-layout {
+  grid-auto-flow: row dense;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.videos-grid.presenter-layout .video-card.presenter-main {
+  grid-column: 1 / -1;
+  order: 2;
+  max-height: 70vh;
+}
+
+.videos-grid.presenter-layout .video-card.presenter-thumb {
+  order: 1;
+  max-height: 120px;
+  aspect-ratio: 16 / 9;
+}
+
+/* Explicit layouts based on participant count
+   (controlled via JS by toggling layout-* classes). */
+.videos-grid.layout-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.videos-grid.layout-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* For 3 participants: 2 on top, 1 centered on bottom spanning 2 columns. */
+.videos-grid.layout-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.videos-grid.layout-3 .video-card:nth-child(3) {
+  grid-column: 1 / -1;
+  max-width: 960px;
+  justify-self: center;
+}
+
+/* 4 or more: keep a balanced 2xN grid. */
+.videos-grid.layout-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.video-card {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  margin: 2px;
+  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.video-label {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  z-index: 10;
+}
+
+.controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 120;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: radial-gradient(circle at top, #1f2933, #111827);
+  border-top: 1px solid #404040;
+  backdrop-filter: blur(16px);
+}
+
+button {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(64, 64, 64, 0.95);
+  color: white;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.16s ease-out, box-shadow 0.16s ease-out,
+    background-color 0.18s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+button:hover {
+  background: #505050;
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+button.active {
+  background: #1d4ed8;
+}
+
+button.danger {
+  background: #f44336;
+}
+
+button.danger:hover {
+  background: #da190b;
+}
+
+/* CC & Reactions icons (buttons use image backgrounds instead of text) */
+#ccBtn {
+  background-color: rgba(64, 64, 64, 0.95);
+  background-image: url("/icons/cc-off.png"); /* CC off icon */
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 28px 28px;
+  /* Hide text label so only the icon shows */
+  color: transparent;
+  font-size: 0;
+}
+
+#ccBtn.cc-on {
+  background-image: url("/icons/cc-on.png"); /* CC on icon */
+}
+
+#reactionBtn {
+  background-color: rgba(64, 64, 64, 0.95);
+  background-image: url("/icons/reaction.png"); /* reaction icon */
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 26px 26px;
+  /* Hide text emoji so only the icon shows */
+  color: transparent;
+  font-size: 0;
+}
+
+.end-call-btn {
+  background: #f44336;
+}
+
+.end-call-btn:hover {
+  background: #da190b;
+}
+
+.chat-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 300px;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.98);
+  border-left: 1px solid #404040;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  z-index: 200;
+}
+
+.chat-panel.open {
+  transform: translateX(0);
+}
+
+.chat-header {
+  padding: 15px;
+  border-bottom: 1px solid #404040;
+  font-weight: bold;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+}
+
+.chat-message {
+  margin-bottom: 10px;
+  padding: 8px;
+  background: #262626;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.chat-message-user {
+  font-weight: bold;
+  color: #60a5fa;
+  margin-bottom: 4px;
+}
+
+.chat-input-area {
+  padding: 10px;
+  border-top: 1px solid #404040;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.chat-attach-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 999px;
+  border: none;
+  background: #111827;
+  color: #e5e7eb;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.chat-attach-btn:hover {
+  background: #1f2937;
+
+}
+
+.chat-input-area input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background: #262626;
+  color: white;
+}
+
+.chat-input-area button {
+  width: auto;
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.chat-send-btn {
+  background: #2563eb;
+  color: #f9fafb;
+  border: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 40px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.chat-send-btn:hover {
+  background: #1d4ed8;
+}
+
+.participant-list {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 250px;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.98);
+  border-right: 1px solid #404040;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  /* Higher than the host controls toggle button so panel appears in front */
+  z-index: 102;
+}
+
+.participant-list.open {
+  transform: translateX(0);
+}
+
+.participant-list-header {
+  padding: 15px;
+  border-bottom: 1px solid #404040;
+  font-weight: bold;
+}
+
+.participant-item {
+  padding: 10px 15px;
+  border-bottom: 1px solid #262626;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.participant-item strong {
+  font-size: 13px;
+}
+
+.participant-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #38bdf8, #0f172a);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e5f4ff;
+}
+
+.participant-item button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 14px;
+  background: #404040;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.participant-item button:hover {
+  background: #505050;
+  transform: scale(1.05);
+}
+
+.participant-action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.host-controls-panel {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.98);
+  border-right: 2px solid #1d4ed8;
+  z-index: 99;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  width: 0; /* closed by default */
+  max-width: 300px;
+  overflow-y: auto;
+  overflow-x: visible; /* allow toggle button to be visible outside edge */
+  transition: width 0.4s ease-in-out;
+}
+
+.host-controls-panel.show {
+  width: 300px; /* expanded state on desktop */
+}
+
+/* --- Responsive layout tweaks for mobile --- */
+@media (max-width: 768px) {
+  .videos-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .controls {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px 12px;
+  }
+
+  button {
+    width: 40px;
+    height: 40px;
+    font-size: 17px;
+  }
+
+  .participant-list,
+  .chat-panel {
+    width: 80%;
+    max-width: 320px;
+  }
+
+  .host-controls-panel {
+    max-width: 320px;
+  }
+
+  .host-controls-panel.show {
+    width: 80%;
+  }
+}
+
+.host-controls-panel h3 {
+  padding: 12px 15px;
+  color: #60a5fa;
+  font-size: 14px;
+  border-bottom: 1px solid #333;
+  margin: 0;
+}
+
+.control-item {
+  padding: 12px 15px;
+  border-bottom: 1px solid #262626;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-item .user-name {
+  font-weight: bold;
+  color: #fff;
+  font-size: 12px;
+}
+
+.control-item .user-email {
+  font-size: 10px;
+  color: #999;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.control-buttons button {
+  flex: 1;
+  padding: 6px 8px;
+  height: 32px;
+  font-size: 12px;
+  background: #404040;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-buttons button:hover {
+  background: #505050;
+}
+
+.control-buttons button.recording {
+  background: #7971f4;
+}
+
+.control-buttons button.recording:hover {
+  background: #3113f1;
+}
+
+.panel-toggle-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px; /* corner when panel is closed */
+  width: 32px;
+  height: 32px;
+  background: #1d4ed8;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 101;
+  font-size: 18px;
+  /* button rides along with panel edge; animate horizontal slide */
+  transition: left 0.4s ease-in-out, background-color 0.2s ease,
+    transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.panel-toggle-btn:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+/* When the panel is open, move the button to stay visually
+   attached to the expanding panel edge. Because the panel's
+   width animates from 0 → full, and the button's left also
+   animates from corner → edge, they appear connected. */
+.host-controls-panel.show ~ .panel-toggle-btn {
+  left: 316px; /* panel max width (300px) + border + small gap */
+}
+
+#hostControlsContent {
+  flex: 1;
+  overflow-y: auto;
+}
+
+body:not([data-is-host="true"]) .host-controls-panel,
+body:not([data-is-host="true"]) .panel-toggle-btn {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.participant-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1d4ed8;
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(15, 23, 42, 0.98);
+  color: #f9fafb;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  z-index: 200;
+  animation: slideIn 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.screen-share-container {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 200px;
+  height: 150px;
+  background: #1a1a1a;
+  border: 2px solid #1d4ed8;
+  border-radius: 4px;
+  z-index: 50;
+}
+
+.screen-share-label {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: #1d4ed8;
+  color: white;
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 2px;
+  z-index: 10;
+}
+
+.close-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.flex-between-center {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-send-btn {
+  width: auto;
+  padding: 0 15px;
+  border-radius: 4px;
+  font-size: 14px;
+  height: 36px;
+}
+
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#breakoutBtn {
+  display: none;
+}
+
+#breakoutBtn.active {
+  display: flex;
+}
